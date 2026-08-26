@@ -16,12 +16,14 @@ const compressToTarget = async (inputPath, outputPath, options) => {
   let maxQuality = 95;
   let bestPath = outputPath;
 
+  console.log(`   🎯 Target size mode: ${options.targetSize} KB (${targetBytes} bytes)`);
+
   // 8 iterations is usually enough to get within 5KB of the target
   for (let i = 0; i < 8; i++) {
     const quality = Math.floor((minQuality + maxQuality) / 2);
 
     let transformer = sharp(inputPath)
-      .rotate() // Fixed: added parentheses to handle EXIF orientation
+      .rotate() // Handle EXIF orientation
       .resize({
         width: options.width || null,
         withoutEnlargement: true
@@ -40,8 +42,12 @@ const compressToTarget = async (inputPath, outputPath, options) => {
 
     const stats = fs.statSync(outputPath);
     const size = stats.size;
+    console.log(`      Iteration ${i + 1}: quality=${quality}, output=${(size / 1024).toFixed(1)} KB`);
 
-    if (Math.abs(size - targetBytes) < 5000) break;
+    if (Math.abs(size - targetBytes) < 5000) {
+      console.log(`   ✅ Target reached within tolerance`);
+      break;
+    }
 
     if (size > targetBytes) {
       maxQuality = quality - 1;
@@ -64,11 +70,16 @@ const generateFileName = (originalName, format) => {
 const processBatch = async (batch, options) => {
   // We use Promise.all inside the batch to process the 2 images in parallel
   return Promise.all(batch.map(async (file) => {
-    const outputFileName = generateFileName(file.originalname, options.format);
+    // Determine format: use explicit format or detect from mimetype
+    const fileFormat = options.format || options.detectFormat(file.mimetype);
+    const outputFileName = generateFileName(file.originalname, fileFormat);
     const outputPath = path.join("processed", outputFileName);
 
+    // Build per-file options with the resolved format
+    const fileOptions = { ...options, format: fileFormat };
+
     if (options.targetSize) {
-      await compressToTarget(file.path, outputPath, options);
+      await compressToTarget(file.path, outputPath, fileOptions);
     } else {
       let transformer = sharp(file.path).rotate();
 
@@ -79,11 +90,11 @@ const processBatch = async (batch, options) => {
         });
       }
 
-      if (options.format === "jpeg") {
+      if (fileFormat === "jpeg") {
         transformer = transformer.jpeg({ quality: options.quality, mozjpeg: true });
-      } else if (options.format === "png") {
+      } else if (fileFormat === "png") {
         transformer = transformer.png({ compressionLevel: 9, palette: true });
-      } else if (options.webp) {
+      } else if (fileFormat === "webp") {
         transformer = transformer.webp({ quality: options.quality, effort: 6 });
       }
 
@@ -97,19 +108,30 @@ const processBatch = async (batch, options) => {
 exports.processImages = async (files, options) => {
   const outputFiles = [];
   const BATCH_SIZE = 2;
+  const totalBatches = Math.ceil(files.length / BATCH_SIZE);
+
+  console.log(`   Processing ${files.length} image(s) in ${totalBatches} batch(es) of ${BATCH_SIZE}...`);
 
   // Process in chunks to prevent memory exhaustion
   for (let i = 0; i < files.length; i += BATCH_SIZE) {
+    const batchNum = Math.floor(i / BATCH_SIZE) + 1;
     const batch = files.slice(i, i + BATCH_SIZE);
+    console.log(`   📦 Batch ${batchNum}/${totalBatches}: processing ${batch.length} image(s)...`);
     const processed = await processBatch(batch, options);
     outputFiles.push(...processed);
+    console.log(`   ✅ Batch ${batchNum}/${totalBatches} complete`);
   }
 
   const zipPath = path.join("processed", `compressed-${Date.now()}.zip`);
+  console.log(`   📁 Creating ZIP archive...`);
   await createZip(outputFiles, zipPath);
+
+  const zipSize = fs.statSync(zipPath).size;
+  console.log(`   📦 ZIP size: ${(zipSize / 1024).toFixed(1)} KB`);
 
   return { 
     zipPath,
+    zipSize,
     processedFiles: outputFiles
   };
 };
