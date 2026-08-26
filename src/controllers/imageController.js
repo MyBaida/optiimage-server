@@ -5,7 +5,8 @@ const cleanup = require("../utils/cleanup");
 const detectFormat = (mimetype) => {
   if (mimetype === "image/png") return "png";
   if (mimetype === "image/webp") return "webp";
-  return "jpeg"; // default for image/jpeg and fallback
+  // HEIC/HEIF can't be output — convert to JPEG
+  return "jpeg"; // default for image/jpeg, image/heic, image/heif, and fallback
 };
 
 exports.compressImages = async (req, res) => {

@@ -5,7 +5,7 @@ const path = require("path");
 
 const router = express.Router();
 
-const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
 
 const upload = multer({
   dest: "uploads/",
@@ -15,7 +15,7 @@ const upload = multer({
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error("Only JPG, PNG, and WEBP images are allowed"), false);
+      cb(new Error("Only JPG, PNG, WEBP, and HEIC images are allowed"), false);
     }
 
   }
