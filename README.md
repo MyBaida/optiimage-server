@@ -10,7 +10,7 @@ Try the live API: https://optiimage-server-ev2l.onrender.com/api/images/compress
 
 ## 🌟 Features
 
-- **Multi-format Support**: Compress JPEG, PNG, and WebP images
+- **Multi-format Support**: Compress JPEG, PNG, WebP, and HEIC images
 - **Batch Processing**: Upload and process up to 10 images simultaneously
 - **Smart Compression**: Advanced binary search algorithm to hit target file sizes
 - **Format Conversion**: Convert images between JPEG, PNG, and WebP formats
@@ -93,10 +93,10 @@ Upload and compress one or more images.
 **Request Type**: `multipart/form-data`
 
 **Parameters**:
-- `images` (files): One or more image files (JPEG, PNG, or WebP), max 10 files, max 20MB each
+- `images` (files): One or more image files (JPEG, PNG, WebP, or HEIC), max 10 files, max 10MB each
 - `quality` (number, optional): Quality level from 1-100 (default: 70)
 - `width` (number, optional): Target width in pixels (height scales proportionally)
-- `format` (string, optional): Output format - "jpeg", "png", or "webp" (default: "jpeg")
+- `format` (string, optional): Output format - "jpeg", "png", or "webp" (default: original format detected from uploaded file)
 - `targetSize` (number, optional): Target file size in KB (uses smart binary search to achieve)
 
 **Example Request** (using cURL):
@@ -161,7 +161,7 @@ optiimage-server/
 ### Image Processing Flow
 
 1. **Upload**: Client uploads images via multipart/form-data
-2. **Validation**: Multer validates file types (JPEG, PNG, WebP) and size (max 20MB)
+2. **Validation**: Multer validates file types (JPEG, PNG, WebP, HEIC) and size (max 10MB)
 3. **Batching**: Images are processed in batches of 2 to prevent memory exhaustion
 4. **Processing**: Each image is:
    - Rotated based on EXIF orientation data
@@ -272,8 +272,8 @@ npm test
 
 ## 🔒 Security & Limitations
 
-- **File Type Validation**: Only accepts JPEG, PNG, and WebP images
-- **File Size Limit**: Maximum 20MB per image
+- **File Type Validation**: Only accepts JPEG, PNG, WebP, and HEIC/HEIF images
+- **File Size Limit**: Maximum 10MB per image
 - **Upload Limit**: Maximum 10 images per request
 - **Automatic Cleanup**: Prevents disk space exhaustion
 - **Concurrency Limits**: Prevents memory exhaustion on small servers
@@ -282,9 +282,9 @@ npm test
 
 ### Common Issues
 
-**"Only JPG, PNG, and WEBP images are allowed"**
+**"Only JPG, PNG, WEBP, and HEIC images are allowed"**
 - Ensure you're uploading valid image files
-- Check the MIME type of your files
+- HEIC/HEIF files are auto-converted to the selected output format
 
 **Server runs out of memory with large batches**
 - Reduce batch size in `src/services/imageService.js` (currently set to 2)
@@ -311,7 +311,8 @@ npm test
 Potential features to add:
 - [ ] Configurable cleanup schedule and retention period
 - [ ] Progress tracking for large batches
-- [ ] Support for more image formats (AVIF, HEIC)
+- [x] Support for HEIC/HEIF image format
+- [ ] Support for more image formats (AVIF)
 - [ ] Advanced resize options (height, crop, fit modes)
 - [ ] Watermark overlay support
 - [ ] Image metadata extraction
@@ -325,6 +326,10 @@ ISC License
 ## 👨‍💻 Author
 
 Created as a high-performance image optimization service for modern web applications.
+
+## 🤝 Related
+
+- [OptiImage Frontend](https://github.com/MyBaida/optiimage-frontend) — Frontend interface for this API
 
 ## 🤝 Contributing
 
