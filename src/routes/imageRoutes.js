@@ -11,8 +11,10 @@ const upload = multer({
   dest: "uploads/",
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
   fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const isHeicExt = ext === '.heic' || ext === '.heif';
 
-    if (allowedTypes.includes(file.mimetype)) {
+    if (allowedTypes.includes(file.mimetype) || isHeicExt) {
       cb(null, true);
     } else {
       cb(new Error("Only JPG, PNG, WEBP, and HEIC images are allowed"), false);
